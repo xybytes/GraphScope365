@@ -5,10 +5,15 @@ from tqdm import tqdm
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("-m", "--module", help="outlook,onedrive,sharepoint")
 parser.add_argument("-jwt", "--accessToken", help="Microsoft Graph access token")
 parser.add_argument("-f", "--filter", help="Search Specific Keyword", default="*")
 args = parser.parse_args()
 config = vars(args)
+
+columns_sharepoint = ["File Name","Size", "File type", "Shared", "URL", "Created Date Time", "Last Modified Date Time", "Created By", "Last Modified By"] 
+columns_outlook = ["Created Date Time" , "From", "To" , "CC", "Subject", "Body Preview", "URL", "Attachments"]
+columns_onedrive = ["File Name","Size", "File type", "Created Date Time", "Last Modified Date Time", "Created By", "Last Modified By", "URL"]
 
 headers = {
 "Host": "graph.microsoft.com",
@@ -155,18 +160,20 @@ def export_data(data_array,fields,file_name):
     df = pd.DataFrame(data_array, columns = fields)
     df.to_excel(excel_writer = file_name, index=False)
 
-list_site_id = get_site_id()
-array_site = get_site_list(list_site_id)
-output_files = get_file(array_site)
-columns_sharepoint = ["File Name","Size", "File type", "Shared", "URL", "Created Date Time", "Last Modified Date Time", "Created By", "Last Modified By"] 
-export_data(output_files,columns_sharepoint,"sharepoint.xlsx")
+
+def main():
+    if config["module"] == "outlook":
+        output_emails = get_emails()
+        export_data(output_emails,columns_outlook,"outolok_emails.xlsx")
+    elif config["module"] == "onedrive":
+        output_onedrive = get_onedrive()
+        export_data(output_onedrive,columns_onedrive,"onedrive_files.xlsx")
+    elif config["module"] == "sharepoint":
+        list_site_id = get_site_id()
+        array_site = get_site_list(list_site_id)
+        output_files = get_file(array_site)
+        export_data(output_files,columns_sharepoint,"sharepoint_files.xlsx")
 
 
-#output_emails = get_emails()
-#columns_outlook = ["Created Date Time" , "From", "To" , "CC", "Subject", "Body Preview", "URL", "Attachments"]
-#export_data(output_emails,columns_outlook,"outolok_emails.xlsx")
-
-#output_onedrive = get_onedrive()
-#columns_onedrive = ["File Name","Size", "File type", "Created Date Time", "Last Modified Date Time", "Created By", "Last Modified By", "URL"] 
-#export_data(output_onedrive,columns_onedrive,"onedrive.xlsx")
-
+if __name__ == "__main__":
+    main()
