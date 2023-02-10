@@ -1,7 +1,8 @@
-# txt,xlsx
+# txt,xlsx,json,drawio
 *.txt
 *.xlsx
 *.json
+*.drawio
 
 # Include
 !requirements.txt
