@@ -2,7 +2,7 @@
 
 GraphScope365 is a powerful tool for crawling and reviewing data in Office 365 environment using Microsoft Graph. It enables cyber security experts to scan SharePoint, Outlook and OneDrive for sensitive information and potential security risks.
 
-![alt text](GraphScope365_diagram.png "Diagram")
+![alt text](./img/GraphScope365_diagram.png "Diagram")
 
 ## How to set up
 
@@ -14,7 +14,7 @@ pip3 install -r requirements.txt
 
 Getting an access token for Microsoft Graph can be obatin with Microsoft Graph Explorer. After login is possible to copy the token from the console.
 
-![alt text](Graph_Explorer.png "Graph Explorer")
+![alt text](./img/Graph_Explorer.png "Graph Explorer")
 
 ## Options
 
