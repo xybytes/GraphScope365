@@ -70,7 +70,8 @@ def get_site_list(list_site_id):
         return None
     list_site_data = []
     for site_id in list_site_id:
-        response = http_api("https://graph.microsoft.com/v1.0/sites/"+site_id+"/lists")
+        #response = http_api("https://graph.microsoft.com/v1.0/sites/"+site_id+"/lists")
+        response = http_api("https://graph.microsoft.com/v1.0/sites/{}/lists".format(site_id))
         if response is None:
             continue
         try:
@@ -89,7 +90,7 @@ def get_file(site_data):
     if site_data is None:
         return None
     for n in site_data:
-        response = http_api("https://graph.microsoft.com/v1.0/sites/"+n["site_id"]+"/lists/"+n["list_id"]+"/items?$expand=driveItem")
+        response = http_api("https://graph.microsoft.com/v1.0/sites/{}/lists/{}/items?$expand=driveItem".format(n["site_id"],n["list_id"]))
         if response is None:
             return None
         list_files = []
@@ -167,7 +168,7 @@ def get_emails():
         return list_emails
 
 def get_onedrive():
-    response = http_api("https://graph.microsoft.com/v1.0/me/drive/root/search(q='"+config["filter"]+"')")
+    response = http_api("https://graph.microsoft.com/v1.0/me/drive/root/search(q='{}')".format(config["filter"]))
     if response is None:
         return None
     list_files = []
