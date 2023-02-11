@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import requests
+#import requests
+from src.get_info import get_site_id,get_site_list,get_file,get_emails,get_onedrive
 import argparse
 import pandas as pd
 from tqdm import tqdm
@@ -12,7 +13,7 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 # Add command-line arguments for the module, access token, and filter
 parser.add_argument("-m", "--module", help="outlook,onedrive,sharepoint")
 parser.add_argument("-jwt", "--accessToken", help="Microsoft Graph access token")
-parser.add_argument("-f", "--filter", help="Search Specific Keyword", default="*")
+parser.add_argument("-f", "--filter", help="Search Specific Keyword", default="")
 
 # Parse the command-line arguments
 args = parser.parse_args()
@@ -40,182 +41,6 @@ headers = {
 "Sec-Fetch-Mode": "cors",
 }
 
-
-def http_api(url, keyword=None):
-    # Function to make an HTTP GET request to the Microsoft Graph API
-    payload = {"search": keyword}
-    try:
-        response = requests.get(url, headers=headers, params=payload)
-        response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"An error occurred while making the request: {e}")
-        return None
-    return response
-
-def get_site_id():
-    # Function to get site id
-    response = http_api("https://graph.microsoft.com/v1.0/sites", config["filter"])
-    if response is None:
-        return None
-    list_site_id = []
-    with tqdm(total=None, desc="Getting Sharepoint IDs") as pbar:
-        while True:
-            try:
-                data = response.json()
-            except ValueError as e:
-                print(f"An error occurred while parsing the response JSON: {e}")
-                return None
-            for item in data["value"]:
-                list_site_id.append(item["id"])
-            if '@odata.nextLink' in data:
-                url = data['@odata.nextLink']
-                response = requests.get(url, headers=headers)
-                pbar.update(1)
-            else:
-                break
-        return list_site_id
-
-def get_site_list(list_site_id):
-    # Function to get site list id
-    if list_site_id is None:
-        return None
-    list_site_data = []
-    for site_id in list_site_id:
-        response = http_api("https://graph.microsoft.com/v1.0/sites/{}/lists".format(site_id))
-        if response is None:
-            continue
-        try:
-            data = response.json()
-        except ValueError as e:
-            print(f"An error occurred while parsing the response JSON: {e}")
-            return None
-        for item in data["value"]:
-            if item["name"] == "Shared Documents":
-                list_site_data.append({"site_id":site_id, "list_id":item["id"], "name":item["name"]})
-            else:
-                pass
-    return list_site_data
-
-def get_file(site_data):
-    # Function to get files array
-    if site_data is None:
-        return None
-    for n in site_data:
-        response = http_api("https://graph.microsoft.com/v1.0/sites/{}/lists/{}/items?$expand=driveItem".format(n["site_id"],n["list_id"]))
-        if response is None:
-            return None
-        list_files = []
-        with tqdm(total=None, desc="Getting Sharepoint Files") as pbar:
-            while True:
-                try:
-                    data = response.json()
-                except ValueError as e:
-                    print(f"An error occurred while parsing the response JSON: {e}")
-                    return None
-                for file in data["value"]:
-                    file_data = []
-                    if file["contentType"]["name"] == "Document":
-                        file_data.append(file["fields"]["LinkFilename"])
-                        file_data.append(file["fields"]["FileSizeDisplay"])
-                        file_data.append(file["fields"]["DocIcon"])
-                        file_data.append(file["driveItem"]["shared"]["scope"])
-                        file_data.append(file["webUrl"])
-                        file_data.append(file["createdDateTime"])
-                        file_data.append(file["lastModifiedDateTime"])
-                        file_data.append(file["createdBy"]["user"]["email"])
-                        file_data.append(file["lastModifiedBy"]["user"]["email"])
-                        list_files.append(file_data)
-                    else:
-                        pass
-                if '@odata.nextLink' in data:
-                    url = data['@odata.nextLink']
-                    response = requests.get(url, headers=headers)
-                    if response is None:
-                        continue
-                    pbar.update(1)
-                else:
-                    break
-        return list_files
-
-def get_emails():
-    # Function to dump email
-    response = http_api("https://graph.microsoft.com/v1.0/me/messages", config["filter"])
-    if response is None:
-        return None
-    list_emails = []
-    with tqdm(total=None, desc="Getting Outlook Emails") as pbar:
-        while True:
-            try:
-                data = response.json()
-            except ValueError as e:
-                print(f"An error occurred while parsing the response JSON: {e}")
-                return None
-            for email in data["value"]:
-                email_data = []
-                email_data.append(email["createdDateTime"])
-                email_data.append(email["from"]["emailAddress"]["address"])
-                toRecipients = ""
-                for recepient in email["toRecipients"]:
-                    toRecipients += recepient["emailAddress"]["address"]
-                    toRecipients += ";"
-                email_data.append(toRecipients)
-                ccRecipients = ""
-                for recepient in email["ccRecipients"]:
-                    ccRecipients += recepient["emailAddress"]["address"]
-                    ccRecipients += ";"
-                email_data.append(ccRecipients)
-                email_data.append(email["subject"])
-                email_data.append(email["bodyPreview"])
-                email_data.append(email["webLink"])
-                email_data.append(email["hasAttachments"])
-                list_emails.append(email_data)
-            if '@odata.nextLink' in data:
-                url = data['@odata.nextLink']
-                response = requests.get(url, headers=headers)
-                if response is None:
-                    continue
-                pbar.update(1)
-            else:
-                break
-        return list_emails
-
-def get_onedrive():
-    # Function to get file in onedrive
-    response = http_api("https://graph.microsoft.com/v1.0/me/drive/root/search(q='{}')".format(config["filter"]))
-    if response is None:
-        return None
-    list_files = []
-    with tqdm(total=None, desc="Getting OneDrive Files") as pbar:
-        while True:
-            try:
-                data = response.json()
-            except ValueError as e:
-                print(f"An error occurred while parsing the response JSON: {e}")
-                return None
-            for file in data["value"]:
-                file_data = []
-                if "file" in file:
-                    file_data.append(file["name"])
-                    file_data.append(file["size"])
-                    file_data.append(file["file"]["mimeType"])
-                    file_data.append(file["createdDateTime"])
-                    file_data.append(file["lastModifiedDateTime"])
-                    file_data.append(file["createdBy"]["user"]["email"])
-                    file_data.append(file["lastModifiedBy"]["user"]["email"])
-                    file_data.append(file["webUrl"])
-                    list_files.append(file_data)
-                else:
-                    pass
-            if '@odata.nextLink' in data:
-                url = data['@odata.nextLink']
-                response = requests.get(url, headers=headers)
-                if response is None:
-                    continue
-                pbar.update(1)
-            else:
-                break
-    return list_files
-
 def export_data(data_array,fields,file_name):
     # Function to export data in a xlsx file
     try:
@@ -228,16 +53,18 @@ def export_data(data_array,fields,file_name):
 
 def main():
     if config["module"] == "outlook":
-        output_emails = get_emails()
+        output_emails = get_emails(headers, config["filter"])
         export_data(output_emails,columns_outlook,"outolok_emails.xlsx")
     elif config["module"] == "onedrive":
-        output_onedrive = get_onedrive()
+        output_onedrive = get_onedrive(headers, config["filter"])
         export_data(output_onedrive,columns_onedrive,"onedrive_files.xlsx")
     elif config["module"] == "sharepoint":
-        list_site_id = get_site_id()
-        array_site = get_site_list(list_site_id)
-        output_files = get_file(array_site)
+        list_site_id = get_site_id(headers, config["filter"])
+        array_site = get_site_list(list_site_id, headers)
+        output_files = get_file(array_site, headers)
         export_data(output_files,columns_sharepoint,"sharepoint_files.xlsx")
+    else:
+        print("Command not Found")
 
 
 if __name__ == "__main__":
