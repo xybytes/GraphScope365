@@ -6,17 +6,24 @@ import pandas as pd
 from tqdm import tqdm
 
 
+# Create an ArgumentParser object to parse command-line arguments
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+# Add command-line arguments for the module, access token, and filter
 parser.add_argument("-m", "--module", help="outlook,onedrive,sharepoint")
 parser.add_argument("-jwt", "--accessToken", help="Microsoft Graph access token")
 parser.add_argument("-f", "--filter", help="Search Specific Keyword", default="*")
+
+# Parse the command-line arguments
 args = parser.parse_args()
 config = vars(args)
 
+# Define column names for the different modules
 columns_sharepoint = ["File Name","Size", "File type", "Shared", "URL", "Created Date Time", "Last Modified Date Time", "Created By", "Last Modified By"] 
 columns_outlook = ["Created Date Time" , "From", "To" , "CC", "Subject", "Body Preview", "URL", "Attachments"]
 columns_onedrive = ["File Name","Size", "File type", "Created Date Time", "Last Modified Date Time", "Created By", "Last Modified By", "URL"]
 
+# Define the headers for the HTTP request
 headers = {
 "Host": "graph.microsoft.com",
 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/109.0",
@@ -33,7 +40,9 @@ headers = {
 "Sec-Fetch-Mode": "cors",
 }
 
+
 def http_api(url, keyword=None):
+    # Function to make an HTTP GET request to the Microsoft Graph API
     payload = {"search": keyword}
     try:
         response = requests.get(url, headers=headers, params=payload)
@@ -44,6 +53,7 @@ def http_api(url, keyword=None):
     return response
 
 def get_site_id():
+    # Function to get site id
     response = http_api("https://graph.microsoft.com/v1.0/sites", config["filter"])
     if response is None:
         return None
@@ -66,11 +76,11 @@ def get_site_id():
         return list_site_id
 
 def get_site_list(list_site_id):
+    # Function to get site list id
     if list_site_id is None:
         return None
     list_site_data = []
     for site_id in list_site_id:
-        #response = http_api("https://graph.microsoft.com/v1.0/sites/"+site_id+"/lists")
         response = http_api("https://graph.microsoft.com/v1.0/sites/{}/lists".format(site_id))
         if response is None:
             continue
@@ -87,6 +97,7 @@ def get_site_list(list_site_id):
     return list_site_data
 
 def get_file(site_data):
+    # Function to get files array
     if site_data is None:
         return None
     for n in site_data:
@@ -127,6 +138,7 @@ def get_file(site_data):
         return list_files
 
 def get_emails():
+    # Function to dump email
     response = http_api("https://graph.microsoft.com/v1.0/me/messages", config["filter"])
     if response is None:
         return None
@@ -168,6 +180,7 @@ def get_emails():
         return list_emails
 
 def get_onedrive():
+    # Function to get file in onedrive
     response = http_api("https://graph.microsoft.com/v1.0/me/drive/root/search(q='{}')".format(config["filter"]))
     if response is None:
         return None
@@ -204,6 +217,7 @@ def get_onedrive():
     return list_files
 
 def export_data(data_array,fields,file_name):
+    # Function to export data in a xlsx file
     try:
         df = pd.DataFrame(data_array, columns = fields)
         df.to_excel(excel_writer = file_name, index=False)
