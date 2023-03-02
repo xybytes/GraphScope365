@@ -1,5 +1,8 @@
 ## What is GraphScope365
 
+[![Python 3.x](https://img.shields.io/badge/python-3.x-yellow.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/license-MIT-red.svg)](https://github.com/xybytes/GraphScope365/blob/main/LICENSE)
+
 GraphScope365 is a powerful tool for crawling and reviewing data in Office 365 environment using Microsoft Graph. It enables cyber security experts to scan SharePoint, Outlook and OneDrive for sensitive information and potential security risks.
 
 ![alt text](./docs/img/GraphScope365_diagram.png "Diagram")
